@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Báo cáo: Context API vs AsyncStorage</title>
+<style>
+  body { font-family: 'Times New Roman', serif; font-size: 13pt; margin: 2.5cm; line-height: 1.6; color: #000; }
+  h1 { font-size: 16pt; text-align: center; font-weight: bold; margin-bottom: 4px; }
+  h2 { font-size: 14pt; font-weight: bold; margin-top: 20px; margin-bottom: 6px; }
+  h3 { font-size: 13pt; font-weight: bold; margin-top: 14px; margin-bottom: 4px; }
+  .center { text-align: center; }
+  .subtitle { text-align: center; font-style: italic; color: #444; margin-bottom: 30px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background-color: #2c3e50; color: white; padding: 8px 12px; text-align: left; }
+  td { border: 1px solid #ccc; padding: 8px 12px; vertical-align: top; }
+  tr:nth-child(even) td { background-color: #f9f9f9; }
+  code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11pt; }
+  pre { background: #f4f4f4; padding: 12px; border-radius: 6px; font-family: Consolas, monospace; font-size: 11pt; overflow-x: auto; }
+  .box { border-left: 4px solid #3498db; padding: 10px 16px; background: #eaf4fb; margin: 12px 0; }
+  .box-green { border-left: 4px solid #2ecc71; padding: 10px 16px; background: #eafaf1; margin: 12px 0; }
+  .box-purple { border-left: 4px solid #8e44ad; padding: 10px 16px; background: #f5eef8; margin: 12px 0; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
+  @media print { body { margin: 2cm; } }
+</style>
+</head>
+<body>
+
+<h1>BÁO CÁO THỰC HÀNH</h1>
+<p class="center" style="font-size:14pt; font-weight:bold;">React Native Navigation: Context API vs AsyncStorage</p>
+<p class="subtitle">Môn học: Lập trình Di động &nbsp;|&nbsp; Họ tên: [Tên sinh viên] &nbsp;|&nbsp; MSSV: [MSSV]</p>
+
+<hr>
+
+<h2>1. Context API và AsyncStorage khác nhau như thế nào?</h2>
+
+<p>Đây là hai công cụ phục vụ mục đích hoàn toàn khác nhau trong React Native:</p>
+
+<table>
+  <tr>
+    <th>Tiêu chí</th>
+    <th>Context API</th>
+    <th>AsyncStorage</th>
+  </tr>
+  <tr>
+    <td><b>Bản chất</b></td>
+    <td>Cơ chế quản lý state toàn cục của React</td>
+    <td>Hệ thống lưu trữ key-value trên thiết bị</td>
+  </tr>
+  <tr>
+    <td><b>Vị trí lưu</b></td>
+    <td>RAM (bộ nhớ tạm)</td>
+    <td>Bộ nhớ vĩnh viễn của thiết bị (disk)</td>
+  </tr>
+  <tr>
+    <td><b>Tắt app</b></td>
+    <td>Mất toàn bộ dữ liệu</td>
+    <td>Dữ liệu vẫn còn</td>
+  </tr>
+  <tr>
+    <td><b>Tốc độ</b></td>
+    <td>Rất nhanh (đồng bộ)</td>
+    <td>Chậm hơn (bất đồng bộ, I/O)</td>
+  </tr>
+  <tr>
+    <td><b>Cú pháp</b></td>
+    <td>Đồng bộ, dùng hook <code>useContext</code></td>
+    <td>Bất đồng bộ, dùng <code>async/await</code></td>
+  </tr>
+  <tr>
+    <td><b>Phạm vi</b></td>
+    <td>Trong phiên làm việc hiện tại</td>
+    <td>Xuyên suốt các lần mở app</td>
+  </tr>
+  <tr>
+    <td><b>Dung lượng</b></td>
+    <td>Giới hạn bởi RAM</td>
+    <td>Lên đến 6MB (mặc định)</td>
+  </tr>
+  <tr>
+    <td><b>Kiểu dữ liệu</b></td>
+    <td>Bất kỳ (object, array, function...)</td>
+    <td>Chỉ string (cần JSON.stringify/parse)</td>
+  </tr>
+</table>
+
+<div class="box">
+  <b>Tóm gọn:</b> Context API = "bảng trắng trong phòng họp" — mọi người đều thấy nhưng xóa khi ra về. AsyncStorage = "sổ tay cá nhân" — ghi vào thì giữ mãi dù đóng app.
+</div>
+
+<hr>
+
+<h2>2. Khi nào nên dùng Context API?</h2>
+
+<p>Context API phù hợp khi cần <b>chia sẻ state giữa nhiều component</b> mà không muốn truyền props qua nhiều tầng (prop drilling):</p>
+
+<ul>
+  <li>Thông tin người dùng đang đăng nhập (trong phiên hiện tại)</li>
+  <li>Theme (dark/light mode) — thay đổi ngay lập tức trên toàn app</li>
+  <li>Giỏ hàng tạm thời trong phiên mua sắm</li>
+  <li>Ngôn ngữ hiển thị (i18n)</li>
+  <li>Trạng thái loading/error toàn cục</li>
+</ul>
+
+<div class="box-green">
+  <b>Ví dụ trong bài:</b> Danh sách yêu thích và thông tin user được lưu trong <code>AppContext</code>. Khi thêm sản phẩm ở <code>DetailScreen</code>, <code>FavoritesScreen</code> cập nhật ngay lập tức vì cùng dùng chung context.
+</div>
+
+<pre>
+// Tạo context
+const AppContext = createContext();
+
+// Cung cấp dữ liệu
+&lt;AppProvider&gt;
+  &lt;App /&gt;
+&lt;/AppProvider&gt;
+
+// Sử dụng ở bất kỳ component con nào
+const { favorites, addFavorite } = useAppContext();
+</pre>
+
+<hr>
+
+<h2>3. Khi nào cần AsyncStorage?</h2>
+
+<p>AsyncStorage cần thiết khi dữ liệu phải <b>tồn tại sau khi tắt và mở lại app</b>:</p>
+
+<ul>
+  <li>Token đăng nhập (JWT) — để không phải đăng nhập lại mỗi lần mở app</li>
+  <li>Cài đặt người dùng (theme, ngôn ngữ, thông báo)</li>
+  <li>Lịch sử tìm kiếm, lịch sử xem</li>
+  <li>Dữ liệu offline (cache sản phẩm, bài viết)</li>
+  <li>Trạng thái onboarding (đã xem hướng dẫn chưa)</li>
+</ul>
+
+<div class="box-purple">
+  <b>Ví dụ trong bài:</b> Danh sách yêu thích lưu bằng AsyncStorage. Khi tắt app và mở lại, danh sách vẫn còn nguyên. Dùng <code>useFocusEffect</code> để tải lại dữ liệu mỗi khi tab được focus.
+</div>
+
+<pre>
+// Lưu dữ liệu
+await AsyncStorage.setItem('@favorites', JSON.stringify(list));
+
+// Đọc dữ liệu
+const json = await AsyncStorage.getItem('@favorites');
+const list = json ? JSON.parse(json) : [];
+
+// Xóa dữ liệu
+await AsyncStorage.removeItem('@favorites');
+</pre>
+
+<hr>
+
+<h2>4. Có thể kết hợp 2 cách không? Nếu có, giải thích cách làm.</h2>
+
+<p><b>Hoàn toàn có thể và đây là cách làm phổ biến nhất trong thực tế.</b></p>
+
+<p>Chiến lược kết hợp: dùng AsyncStorage để <b>khởi tạo</b> Context, và Context để <b>phân phối</b> dữ liệu trong app.</p>
+
+<h3>Cách hoạt động:</h3>
+<ol>
+  <li>Khi app khởi động, đọc dữ liệu từ AsyncStorage vào state của Context</li>
+  <li>Trong suốt phiên làm việc, các component đọc/ghi qua Context (nhanh, đồng bộ)</li>
+  <li>Mỗi khi state thay đổi, tự động ghi lại vào AsyncStorage (để lưu vĩnh viễn)</li>
+</ol>
+
+<pre>
+export function AppProvider({ children }) {
+  const [favorites, setFavorites] = useState([]);
+
+  // Bước 1: Đọc từ AsyncStorage khi khởi động
+  useEffect(() => {
+    AsyncStorage.getItem('@favorites').then((json) => {
+      if (json) setFavorites(JSON.parse(json));
+    });
+  }, []);
+
+  // Bước 2: Mỗi khi favorites thay đổi, lưu vào AsyncStorage
+  useEffect(() => {
+    AsyncStorage.setItem('@favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  // Bước 3: Cung cấp qua Context như bình thường
+  const addFavorite = (item) => setFavorites(prev => [...prev, item]);
+
+  return (
+    &lt;AppContext.Provider value={{ favorites, addFavorite }}&gt;
+      {children}
+    &lt;/AppContext.Provider&gt;
+  );
+}
+</pre>
+
+<h3>Lợi ích của cách kết hợp:</h3>
+<table>
+  <tr>
+    <th>Lợi ích</th>
+    <th>Giải thích</th>
+  </tr>
+  <tr>
+    <td>Dữ liệu bền vững</td>
+    <td>Nhờ AsyncStorage, dữ liệu không mất khi tắt app</td>
+  </tr>
+  <tr>
+    <td>Truy cập nhanh</td>
+    <td>Nhờ Context, component đọc dữ liệu đồng bộ, không cần async/await</td>
+  </tr>
+  <tr>
+    <td>Code gọn hơn</td>
+    <td>Component không cần biết về AsyncStorage, chỉ cần dùng useContext</td>
+  </tr>
+  <tr>
+    <td>Dễ bảo trì</td>
+    <td>Logic lưu trữ tập trung trong Provider, không rải rác khắp nơi</td>
+  </tr>
+</table>
+
+<div class="box">
+  <b>Kết luận:</b> Context API và AsyncStorage không phải là hai lựa chọn đối lập mà là hai công cụ bổ sung cho nhau. Trong ứng dụng thực tế, nên dùng AsyncStorage để khởi tạo và đồng bộ dữ liệu, còn Context API để phân phối dữ liệu đó đến các component một cách hiệu quả.
+</div>
+
+<hr>
+<p class="center" style="color:#888; font-size:11pt;">Báo cáo thực hành — React Native Navigation</p>
+
+</body>
+</html>
